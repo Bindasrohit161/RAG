@@ -1,0 +1,72 @@
+.. RCClient SDK documentation master file, created by
+   sphinx-quickstart on Thu May 26 09:03:50 2022.
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.
+
+Healthcare Provider Fraud Detection
+========================================
+
+Provider Fraud is one of the biggest problems facing Medicare. According to the government, the total Medicare spending increased exponentially due to frauds in medicare claims .
+Healthcare fraud is organized crime which involves peers of providers,physicians ,beneficiaries acting together to make fraud claims.
+
+Healthcare Provider Fraud solution offers an insight into how RapidCanvas users and solution providers can build an end to end solution on the notebook interface and view the same on the UI
+
+Problem Statement
+========================================
+
+
+The goal of this project is to " predict the potentially fradulent providers " based on the claims filed by them.Along with this, we will also discover important variables helpful in detecting behaviour of potentially fraud providers.
+Further, we will study fradulent patterns in provider's claims to understand future behaviour of providers.
+
+Rigorous analysis of Medicare data has yielded many physicians who indulge in fraud.They adopt ways in which an ambiguous diagnosis code is ussed to adopt costliest procedures and drugs.
+Insurance companies are most vulnerable institutions impacted due to this bad practices.Due to this reason, insurance companies increased their insurance premiums and as a result healthcare is becoming costly matter day by day.
+
+Business Goals
+========================================
+``Define the business goals of this solution``
+
+
+* The goal of this project is to " predict the potentially fradulent providers " based on the claims filed by them.Along with this, we will also discover important variables helpful in detecting behaviour of potentially fraud providers.
+  Further, we will study fradulent patterns in provider's claims to understand future behaviour of providers.
+
+
+Solution
+========================================
+``Define how you solved this problem``
+
+To help RapidCanvas users build solutions easily on the platform, a 2 fold approach has been used:
+
+* Provide a pre built solution and the corresponding notebook interface to the users
+* Provide a pre built solution reference documentation
+
+This help new users go through solution building end to end with instructions directly on the notebook and see the output on the UI as they run through the cells. 
+
+The reference documentation provides an outline of what to create as part of the solution documentation with examples and syntax
+
+
+Implementation
+========================================
+``Provide high level details of your implementation``
+
+Notebook Implementation
+----------------------------
+
+Here is a reference notebook which users can use.  `Building a Solution on RapidCanvas <https://docs.dev.rapidcanvas.net/buildingasolution.html>`_
+
+Solution Documentation
+----------------------------
+
+Here is the reference documentaton which users can use. `Creating documentation for a solution <https://docs.dev.rapidcanvas.net/sample_projects/employee/doc/info.html>`_
+
+Outcome
+========================================
+``Provide the business outcomes. You can include charts, images``
+
+* Reduction in time to understand solution building from 2 days to 4 hours
+* Ability to train multiple users with limited support from RapidCanvas
+* Standardized solutions and documentation 
+
+.. image:: gnu3.png
+
+.. image:: gnu1.png
+   

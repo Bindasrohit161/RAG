@@ -1,0 +1,476 @@
+Building a solution
+===================
+
+The following documentation will help you build a solution end to end on
+RapidCanvas through the notebook interface. Please ensure that you have
+the latest SDK installed before running this.
+
+Building a solution on RapidCanvas involves the following steps:
+
+-  Import functions
+-  Authenticate your client
+-  Create a Custom Environment
+-  Create a new project
+-  Build a flow file for the project
+-  Execute the project
+-  Publish the project as a solution
+-  Update solution documentation
+
+In the next section we will go through these steps using a sample
+project. Download the project files here:`Reference
+Project <sample_projects/employee-project.zip>`__
+
+After unzipping, move the employee project folder to the root folder
+where you have installed your SDK.
+
+Opening jupyter notebook
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+To open jupyter notebook you can use the following
+
+jupyter-notebook
+
+In Jupyter Notebook, you should be able to see the HealthCare Fraud Detection_flow
+file and clicking on it will open these following steps
+
+â„¹ï¸ Please note that RapidCanvas only supports the default ipynb kernel
+in jupyter notebook
+
+Import functions
+----------------
+
+.. code:: ipython3
+
+    # Before you go to the next step, execute your import function
+    
+    # Get the latest lib from Rapidcanvas
+    # !pip install --extra-index-url=https://us-central1-python.pkg.dev/rapidcanvas-361003/pypi/simple utils==0.12dev0
+
+    from utils.rc.client.requests import Requests
+    from utils.rc.client.auth import AuthClient
+
+    from utils.rc.dtos.project import Project
+    from utils.rc.dtos.dataset import Dataset
+    from utils.rc.dtos.recipe import Recipe
+    from utils.rc.dtos.transform import Transform
+    from utils.rc.dtos.template import Template, TemplateTransform, TemplateInput
+    from utils.rc.dtos.template_v2 import TemplateV2, TemplateTransformV2
+    from utils.rc.dtos.env import Env
+    from utils.rc.dtos.env import EnvType
+    import json
+    import pandas as pd
+    import logging
+    logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.INFO)
+
+Authenticate your client
+------------------------
+
+Authenticate your client using a token or your user credentials
+
+.. code:: ipython3
+
+    # Requests.setRootHost("http://staging.dev.rapidcanvas.net/api/")  #Uncomment this line during run
+    AuthClient.setToken()  #you can find your token in RapidCanvas UI under tools/token
+    #OR use email and password
+    #AuthClient.setToken(email="your email", password="your pass")  #credentials you use to login to RapidCanvas UI 
+
+Creating a custom environment
+-----------------------------
+
+A custom environment allows you to choose the infrastructure you need to
+execute your project. Here are the available custom environments and
+their usage gudelines
+
+| SMALL: 1 Core, 2GB Memmory
+| MEDIUM: 2 Cores, 4GB Memmory
+| LARGE: 4 Cores, 8GB Memmory
+| CPU_LARGE: 8 Cores, 16GB Memmory
+| MAX_LARGE: 12 Cores, 32GB Memmory
+| EXTRA_MAX_LARGE: 12 Cores, 48GB Memmory
+
+You can create a new env by executing the cell below:
+
+.. code:: ipython3
+
+    Healthcare_Fraud_env = Env.createEnv(
+        name="Healthcare_Fraud_detection",
+        description="env for my HealthCare provider Fraud detection project",
+        envType=EnvType.LARGE, #pick one of the pre-defined configs
+        requirements="imblearn matplotlib seaborn scipy scikit-learn==0.23.2 pycaret markupsafe==2.0.1 Jinja2" #additional packages to be installed for your custom env
+    )
+
+Creating a new project
+----------------------
+
+Create a new project under your tenant
+
+.. code:: ipython3
+
+    ### Create project on platform
+    project = Project.create(
+        name='Healthcare_Fraud_detection',
+        description='HealthCare provider Fraud detection',
+        createEmpty=True,
+        envId=Healthcare_Fraud_env.id,
+        )
+    project.id
+
+**This has now created a new project named "Healthcare_Fraud_detection" under your tenant.
+You can check the same on the RapidCanvas UI by logging in here:**
+`RapidCanvas UI <https://staging.dev.rapidcanvas.net/>`__
+
+Building a flow file for the project
+------------------------------------
+
+Building a flow file for the project involves the following steps:
+
+-  Upload your dataset:
+-  Create a new template or use existing templates provided by
+   RapidCavas for data modification:
+-  Create a transform from the template
+-  Create a recipe
+-  Add a transform or a list of transforms to your recipe
+-  Run your recipe
+-  Push output of your recipe to a new table
+
+Uploading your dataset
+~~~~~~~~~~~~~~~~~~~~~~
+
+Execute cell below to create new tables and upload your dataset:
+
+.. code:: ipython3
+
+    #This creates a dataset on RapidCanvas called "Beneficiarydata" and uploads the Train_Beneficiarydata-1542865627584.csv file to it.
+        Beneficiarydata = project.addDataset(
+        dataset_name='Train_Beneficiarydata-1542865627584',
+        dataset_description='Train Bene',
+        dataset_file_path='data/Train_Beneficiarydata-1542865627584.csv'
+    )
+
+.. code:: ipython3
+
+    #This creates a dataset on RapidCanvas called "Inpatientdata" and uploads the Train_Inpatientdata-1542865627584.csv file to it.
+    Inpatientdata = project.addDataset(
+        dataset_name='Train_Inpatientdata-1542865627584',
+        dataset_description='Train_IP',
+        dataset_file_path='data/Train_Inpatientdata-1542865627584.csv'
+    )
+
+.. code:: ipython3
+
+    #This creates a dataset on RapidCanvas called "Outpatientdata" and uploads the Train_Outpatientdata-1542865627584.csv file to it.
+     Outpatientdata = project.addDataset(
+        dataset_name='Train_Outpatientdata-1542865627584',
+        dataset_description='Train_OP',
+        dataset_file_path='data/Train_Outpatientdata-1542865627584.csv'
+    )
+
+.. code:: ipython3
+
+    #This creates a dataset on RapidCanvas called "train" and uploads the Train-1542865627584.csv file to it.
+    train = project.addDataset(
+        dataset_name='Train_1542865627584',
+        dataset_description='Train_Tgt',
+        dataset_file_path='data/Train-1542865627584.csv'
+    )
+
+
+Create a new template or use existing templates provided by RapidCavas for data modification
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Execute cell below to use an feature_engineering template:
+
+.. code:: ipython3
+
+    feature_engineering_template = TemplateV2(
+        name="feature_engineering", description="1st feature_engineering of HealtCare faud data", project_id=project.id,
+        source="CUSTOM", status="ACTIVE", tags=["UI", "Scalar"]
+    )
+    feature_engineering_transform = TemplateTransformV2(
+        type = "python", params=dict(notebookName="Feature_Enginerring.ipynb"))
+
+    feature_engineering_template.base_transforms = [feature_engineering_transform]
+    feature_engineering_template.publish("transforms/Feature_Enginerring.ipynb")
+
+List existing templates from RapidCanvas library:
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Feature engineering Templates
+
+
+Data Aggregation Template
+.. code:: ipython3
+
+    data_aggregation_template = TemplateV2(
+        name="Data_aggregation", description="Aggregation of HealtCare fraud data", project_id=project.id,
+        source="CUSTOM", status="ACTIVE", tags=["UI", "Scalar"]
+    )
+    data_aggregation_transform = TemplateTransformV2(
+        type = "python", params=dict(notebookName="Adding_Aggregated_Features.ipynb"))
+
+    data_aggregation_template.base_transforms = [data_aggregation_transform]
+    data_aggregation_template.publish("transforms/Adding_Aggregated_Features.ipynb")
+
+
+Classifier Recipe Template
+.. code:: ipython3
+
+    classifier_recipe_template = TemplateV2(
+        name="ML Classification", description="Machine learning classification of HealtCare Frad ", project_id=project.id,
+        source="CUSTOM", status="ACTIVE", tags=["UI", "Scalar"]
+    )
+    classifier_recipe_transform = TemplateTransformV2(
+        type = "python", params=dict(notebookName="ML_Classifier.ipynb"))
+
+    classifier_recipe_template.base_transforms = [classifier_recipe_transform]
+    classifier_recipe_template.publish("transforms/ML_Classifier.ipynb")
+
+
+
+
+
+
+**To further read about RapidCanvas templates refer to this section:**
+`Building a
+template <https://docs.dev.rapidcanvas.net/buildingatemplate.html>`__
+
+Create a transform from the template
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A transform can be created from a template using the following:
+
+.. code:: ipython3
+
+    feature_engineering_transform = Transform()
+    feature_engineering_transform.templateId = feature_engineering_template.id
+    feature_engineering_transform.name='features'
+    feature_engineering_transform.variables = {
+        'inputDataset': 'Train_Beneficiarydata-1542865627584',
+        'inputDataset2': 'Train_Inpatientdata-1542865627584',
+        'inputDataset3': 'Train_Outpatientdata-1542865627584',
+        'inputDataset4': 'Train_1542865627584',
+        'outputDataset': 'train_iobp_df'
+    }
+.. code:: ipython3
+
+    data_aggregation_transform = Transform()
+    data_aggregation_transform.templateId = data_aggregation_template.id
+    data_aggregation_transform.name='Healthcare data aggregation'
+    data_aggregation_transform.variables = {
+        'inputDataset5': 'train_iobp_df',
+
+        'outputDataset2': 'train_iobp_df_final'
+    }
+
+.. code:: ipython3
+
+    classifier_recipe_transform = Transform()
+    classifier_recipe_transform.templateId = classifier_recipe_template.id
+    classifier_recipe_transform.name='Healthcare Fraud Classification'
+    classifier_recipe_transform.variables = {
+        'inputDataset6': 'train_iobp_df_final',
+
+        'outputDataset3': 'RFC_Score',
+        'outputDataset4': 'ADA_Score',
+        'outputDataset5': 'LGM_Score'
+    }
+
+Create a recipe
+~~~~~~~~~~~~~~~
+
+To create your recipe execute the following:
+
+.. code:: ipython3
+
+    feature_engineering = project.addRecipe([Beneficiarydata,Inpatientdata,Outpatientdata,train ], name='Feature Engineering')
+    data_aggregation=project.addRecipe([train_iobp_df], name='Data Aggregation')
+    classifier_recipe=project.addRecipe([train_iobp_df_final], name='ML Classification')
+    
+	
+
+Add a transform or a list of transforms to your recipe
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To add any of your transforms to your recipe, execute the following:
+
+.. code:: ipython3
+   
+    feature_engineering.add_transform(feature_engineering_transform)
+    data_aggregation.add_transform(data_aggregation_transform)
+    classifier_recipe.add_transform(classifier_recipe_transform)
+    
+
+
+Run your recipe
+~~~~~~~~~~~~~~~
+
+To run your recipe, execute the following:
+
+.. code:: ipython3
+
+    feature_engineering.run()
+    data_aggregation.run()
+    classifier_recipe.run()
+    
+
+Output dataset and review sample
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To generate output dataset and review a sample, execute the following:
+
+.. code:: ipython3
+
+    classifier_LGM_score=classifier_recipe.getChildrenDatasets()['LGM_Score'].getData()
+    classifier_ADA_score=classifier_recipe.getChildrenDatasets()['ADA_Score'].getData()
+    classifier_RFC_score=classifier_recipe.getChildrenDatasets()['RFC_Score'].getData()
+
+
+
+**All these changes are auto updated on RapidCanvas UI. To review the
+flow created in the project on RapidCanvas UI, click on your project
+name in the Dashboard page:** `RapidCanvas
+UI <https://staging.dev.rapidcanvas.net/>`__
+
+Here is another example of using templates in RapidCanvas, to build a visualisation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Create a new template or use existing templates provided by RapidCavas
+for data modification
+
+Beneficiary EDA Template
+.. code:: ipython3
+
+    EDA_Beneficiary_Data__template = TemplateV2(
+        name="EDA_Beneficiary", description="EDA_Beneficiary_Data", project_id=project.id,
+        source="CUSTOM", status="ACTIVE", tags=["UI", "Visualization"]
+    )
+    EDA_Beneficiary_Data__template_transform = TemplateTransformV2(
+        type = "python", params=dict(notebookName="EDA_Beneficiary_Data.ipynb"))
+
+    EDA_Beneficiary_Data__template.base_transforms = [EDA_Beneficiary_Data__template_transform]
+    EDA_Beneficiary_Data__template.publish("transforms/EDA_Beneficiary_Data.ipynb")
+
+
+
+Complete Data EDA Template
+.. code:: ipython3
+
+    EDA_Inpatient_Outpatient_Data_template = TemplateV2(
+        name="EDA_Inpatient_Outpatient_Data", description="EDA_Inpatient_Outpatient_Data", project_id=project.id,
+        source="CUSTOM", status="ACTIVE", tags=["UI", "Visualization"]
+    )
+    EDA_Inpatient_Outpatient_Data_template_transform = TemplateTransformV2(
+        type = "python", params=dict(notebookName="EDA_Inpatient_Outpatient_Data.ipynb"))
+
+    EDA_Inpatient_Outpatient_Data_template.base_transforms = [EDA_Inpatient_Outpatient_Data_template_transform]
+    EDA_Inpatient_Outpatient_Data_template.publish("transforms/EDA_Inpatient_Outpatient_Data.ipynb")
+
+Create a transform from the template
+
+.. code:: ipython3
+
+    EDA_Beneficiary_Data_template_transform = Transform()
+    EDA_Beneficiary_Data_template_transform.templateId = EDA_Beneficiary_Data__template.id
+    EDA_Beneficiary_Data_template_transform.name='EDA_Beneficiary_Chart'
+    EDA_Beneficiary_Data_template_transform.variables = {
+        'inputBeneDataset2': 'Train_Beneficiarydata-1542865627584',
+
+        'EDA_Beneficiary_Data': 'EDA_Beneficiary_Data'
+    }
+
+.. code:: ipython3
+
+    EDA_Inpatient_Outpatient_Data_template_transform = Transform()
+    EDA_Inpatient_Outpatient_Data_template_transform.templateId = EDA_Inpatient_Outpatient_Data_template.id
+    EDA_Inpatient_Outpatient_Data_template_transform.name='EDA_Inpatient_Outpatient_Chart'
+    EDA_Inpatient_Outpatient_Data_template_transform.variables = {
+        'inputBeneDataset3': 'Train_Inpatientdata-1542865627584',
+        'inputBeneDataset4': 'Train_Outpatientdata-1542865627584',
+        'inputBeneDataset6': 'Train_Beneficiarydata-1542865627584',
+        'inputBeneDataset5': 'Train_1542865627584',
+
+
+        'EDA_Inpatient_Outpatient_Data': 'EDA_Inpatient_Outpatient_Data'}
+
+Create a recipe
+
+.. code:: ipython3
+
+    EDA_Beneficiary_Data_recipe=project.addRecipe([Beneficiarydata], name='EDA_Beneficiary')
+    EDA_Inpatient_Outpatient_Data_recipe=project.addRecipe([Inpatientdata,Outpatientdata,train,Beneficiarydata], name='EDA_Inpatient_Outpatient_Data')
+
+Add a transform or a list of transforms to your recipe
+
+.. code:: ipython3
+
+    EDA_Beneficiary_Data_recipe.add_transform(EDA_Beneficiary_Data_template_transform)
+    EDA_Inpatient_Outpatient_Data_recipe.add_transform(EDA_Inpatient_Outpatient_Data_template_transform)
+    
+
+Run your recipe
+
+.. code:: ipython3
+
+    EDA_Beneficiary_Data_recipe.run()
+    EDA_Inpatient_Outpatient_Data_recipe.run()
+
+**You can view the output dashboard on RapidCanvas UI in your project:**
+`RapidCanvas UI <https://staging.dev.rapidcanvas.net/>`__
+
+Executing the project
+---------------------
+
+.. code:: ipython3
+
+    #Execute end to end
+
+Publishing the project as a solution
+------------------------------------
+
+List of existing solutions
+~~~~~~~~~~~~~~~~~~~~~~~~~~	
+
+You can look at the list of available RapidCanvas solutions here:
+
+.. code:: ipython3
+
+    solutions = Solution.get_all()
+    Solution.clean_view(solutions)
+
+Publishing a new solution
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+An end to end project can be convered and published as a solution. This
+allows other users to consume this.
+
+.. code:: ipython3
+
+    solutions = Solution.create(name="Sample Healthcare_Fraud_detection Solution", sourceProjectId=project.id, description="Sample Solution built on Healthcare_Fraud_detection Project", tags=["Sample", "New Users"], isGlobal=False, icon="icon_url")
+    
+    #Solutions are published locally to your tenant and are accessible by other users in your tenant
+    #A published solution can be used to create a new project
+
+**Your published solution is now accessible as part of the Solutions UI.
+You can review the solution details here** `RapidCanvas
+UI <https://staging.dev.rapidcanvas.net/#/solutions>`__
+
+Update solution documentation
+-----------------------------
+
+A published solution needs to be documented to inform users about the
+use case as well as the business impact
+
+Sample solution documentation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can refer to the documentation of this sample project here: `Sample
+Project
+Documentation <https://docs.dev.rapidcanvas.net/sample_projects/Healthcare_Fraud_detection/doc/info.html>`__
+
+Users are recommended to follow the documentation structure as listed in
+the sample project documentation.
+
+You can update the documentation of your solution in GitHub under
+` <https://github.com/../../projects/your_projects/project_name/doc/info.rst>`__
+
+Reference Notebooks
+-------------------
